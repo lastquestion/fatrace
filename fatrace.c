@@ -33,6 +33,13 @@
 #include <sys/fanotify.h>
 #include <sys/time.h>
 
+#ifndef major
+#include <sys/param.h>
+#ifndef major
+#include <sys/sysmacros.h>
+#endif
+#endif
+
 /* command line options */
 static char* option_output = NULL;
 static long option_timeout = -1;
@@ -174,15 +181,6 @@ setup_fanotify(int fan_fd)
     }
 
     while ((mount = getmntent (mounts)) != NULL) {
-        /* Only consider mounts which have an actual device or bind mount
-         * point. The others are stuff like proc, sysfs, binfmt_misc etc. which
-         * are virtual and do not actually cause disk access. */
-        if (access (mount->mnt_fsname, F_OK) != 0) {
-            //printf("IGNORE: fsname: %s dir: %s type: %s\n", mount->mnt_fsname, mount->mnt_dir, mount->mnt_type);
-            continue;
-        }
-
-        //printf("Adding watch for %s mount %s\n", mount->mnt_type, mount->mnt_dir);
         res = fanotify_mark (fan_fd, FAN_MARK_ADD | FAN_MARK_MOUNT, 
                 FAN_ACCESS| FAN_MODIFY | FAN_OPEN | FAN_CLOSE | FAN_ONDIR | FAN_EVENT_ON_CHILD,
                 AT_FDCWD, mount->mnt_dir);
